@@ -1,2 +1,6 @@
 .vscode/
 inputs/*.root
+outputs/*
+lib/*
+objs/*
+bin/*
