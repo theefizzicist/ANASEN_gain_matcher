@@ -10,6 +10,7 @@
 #include "TH2.h"
 #include "TStyle.h"
 #include "TColor.h"
+#include <algorithm>
 
 ScatterPlotter::ScatterPlotter(const std::map<std::pair<int, int>, std::pair<std::vector<double>, std::vector<double>>>& filteredEnergyData,
                                const std::string& output_directory,
@@ -18,7 +19,30 @@ ScatterPlotter::ScatterPlotter(const std::map<std::pair<int, int>, std::pair<std
                                const double& maxOffset,
                                const double& minOffset)
     : filteredEnergyData_(filteredEnergyData), outputDirectory_(output_directory), maxSlope_(maxSlope), minSlope_(minSlope), maxOffset_(maxOffset), minOffset_(minOffset) 
-{}
+{
+    // fill out maxRangeValues for later use
+    maxRange_ = 0.0;
+    for (int i = 0; i < 16; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            std::pair<int, int> key = std::make_pair(i, j);
+
+            if (filteredEnergyData.find(key) == filteredEnergyData.end()){
+                continue;
+            }
+
+            std::vector<double> currentRingEnergy = filteredEnergyData.at(key).first;
+            std::vector<double> currentWedgeEnergy = filteredEnergyData.at(key).second;
+            if (currentRingEnergy.size() == 0 || currentWedgeEnergy.size() ==0) continue;
+
+            int maxEnergy = static_cast<int>(std::max(*std::max_element(currentRingEnergy.begin(), currentRingEnergy.end()),
+                                                      *std::max_element(currentWedgeEnergy.begin(), currentWedgeEnergy.end())));
+            maxRangeValues_[key] = static_cast<int>(1.3 * maxEnergy);
+            maxRange_ = std::max(maxRange_, maxRangeValues_.at(key));
+        }
+    }
+}
 
 void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>, std::vector<double>>& fit_distribution, 
                                              const std::map<std::pair<int, int>, double>& slopes,
@@ -47,23 +71,28 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
             c1->Clear();
             c1->Divide(2, 1); // split canvas into two parts
 
+            int currentMaxRange = maxRangeValues_.at(key);
+            int nBins = static_cast<int>(0.1 * currentMaxRange);
+
             // create 2D histogram
             c1->cd(1); // switch to first pad
             gPad->SetLogz();
             gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
             gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
             std::string histName = "ring: " + std::to_string(i) + " wedge: " + std::to_string(j);
-            TH2D *h2 = new TH2D(histName.c_str(), histName.c_str(), 500, 0, 5000, 500, 0, 5000);
+            TH2D *h2 = new TH2D(histName.c_str(), histName.c_str(), nBins, 0, currentMaxRange, nBins, 0, currentMaxRange);
+            // TH2D *h2 = new TH2D(histName.c_str(), histName.c_str(), 500, 0, 5000, 500, 0, 5000);
             for(int k=0; k<filteredEnergyData_[key].first.size(); k++){
                 h2->Fill(filteredEnergyData_[key].first[k], filteredEnergyData_[key].second[k]);
             }
-            h2->GetXaxis()->SetTitle("Ap (Ring energies) [a.u]");
-            h2->GetYaxis()->SetTitle("An (Wedge energies) [a.u]");
+            h2->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
+            h2->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
             h2->Draw("COLZ");
 
             // create and draw line
             double slope = slopes.at(key);
-            TLine *line = new TLine(0, 0, 5000, 5000*slope);
+            TLine *line = new TLine(0, 0, currentMaxRange, currentMaxRange*slope);
+            // TLine *line = new TLine(0, 0, 5000, 5000*slope);
             line->SetLineColor(kGreen);
             line->SetLineWidth(1);
             line->SetLineStyle(2); // set line style to dashed
@@ -255,20 +284,23 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     auto temp_gErrorIgnoreLevel = gErrorIgnoreLevel;
     gErrorIgnoreLevel = kFatal;
 
-    TCanvas* c1 = new TCanvas("c1", "Combined Plots", 1800, 800);
+    TCanvas* c1 = new TCanvas("c1", "Combined Plots", 2300, 800);
 
     std::string outputFileName = outputDirectory_ + "/before_vs_after_histograms.pdf";
     c1->Print((outputFileName + "[").c_str()); // start PDF file
     
     c1->Divide(2,1); // Divide the canvas into two parts
+
+    int nBins = static_cast<int>(0.1 * maxRange_);
     
     // Create 2D histogram before gain match
     c1->cd(1); // Switch to first pad
     gPad->SetLogz();
     gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
     gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
-    TH2D *h2_before = new TH2D("h2_before", "Before gain match", 500, 0, 5000, 500, 0, 5000);
-    
+    TH2D *h2_before = new TH2D("h2_before", "Before gain match", nBins, 0, maxRange_, nBins, 0, maxRange_);
+    // TH2D *h2_before = new TH2D("h2_before", "Before gain match", 500, 0, 5000, 500, 0, 5000);
+
     for(int i = 0; i < 16; i++){
         for(int j = 0; j < 8; j++){
             std::pair<int, int> key = std::make_pair(i, j);
@@ -282,7 +314,8 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
             }
         }
     }
-    
+    h2_before->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
+    h2_before->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
     h2_before->Draw("COLZ");
 
     // Create 2D histogram after gain match
@@ -290,7 +323,8 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     gPad->SetLogz();
     gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
     gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
-    TH2D *h2_after = new TH2D("h2_after", "After gain match", 500, 0, 5000, 500, 0, 5000);
+    TH2D *h2_after = new TH2D("h2_after", "After gain match", nBins, 0, maxRange_, nBins, 0, maxRange_);
+    // TH2D *h2_after = new TH2D("h2_after", "After gain match", 500, 0, 5000, 500, 0, 5000);
 
     for(int i = 0; i < 16; i++){
         for(int j = 0; j < 8; j++){
@@ -305,7 +339,8 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
             }
         }
     }
-
+    h2_after->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
+    h2_after->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
     h2_after->Draw("COLZ");
 
     gStyle->SetPalette(kInvertedDarkBodyRadiator);
