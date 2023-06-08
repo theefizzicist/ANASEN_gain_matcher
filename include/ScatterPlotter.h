@@ -35,6 +35,8 @@ private:
     std::map<std::pair<int, int>, std::pair<std::vector<double>, std::vector<double>>> filteredEnergyData_;
     std::string outputDirectory_;
     double maxSlope_, minSlope_, maxOffset_, minOffset_;
+    std::map<std::pair<int, int>, int> maxRangeValues_;
+    int maxRange_; // the maximum value out of all maxRangeValues_
 };
 
 #endif // SCATTER_PLOTTER_H
