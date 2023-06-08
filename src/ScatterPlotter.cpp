@@ -76,12 +76,14 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
 
             // create 2D histogram
             c1->cd(1); // switch to first pad
+            gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
             gPad->SetLogz();
             gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
             gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
+            gStyle->SetStatW(0.12);  // set width
+            gStyle->SetStatH(0.12);  // set height
             std::string histName = "ring: " + std::to_string(i) + " wedge: " + std::to_string(j);
             TH2D *h2 = new TH2D(histName.c_str(), histName.c_str(), nBins, 0, currentMaxRange, nBins, 0, currentMaxRange);
-            // TH2D *h2 = new TH2D(histName.c_str(), histName.c_str(), 500, 0, 5000, 500, 0, 5000);
             for(int k=0; k<filteredEnergyData_[key].first.size(); k++){
                 h2->Fill(filteredEnergyData_[key].first[k], filteredEnergyData_[key].second[k]);
             }
@@ -91,8 +93,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
 
             // create and draw line
             double slope = slopes.at(key);
-            TLine *line = new TLine(0, 0, currentMaxRange, currentMaxRange*slope);
-            // TLine *line = new TLine(0, 0, 5000, 5000*slope);
+            TLine *line = new TLine(0, 0, 0.95*currentMaxRange, 0.95*currentMaxRange*slope);
             line->SetLineColor(kGreen);
             line->SetLineWidth(1);
             line->SetLineStyle(2); // set line style to dashed
@@ -100,6 +101,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
 
             // create line plot
             c1->cd(2); // switch to second pad
+            gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
 
             std::vector<double> SpnValues(fit_distribution.at(key).size());
             double dS = (maxSlope_ - minSlope_) / (fit_distribution.at(key).size() - 1);
@@ -114,20 +116,28 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
             double minX = slopes.at(key) - halfWindow;
             double maxX = slopes.at(key) + halfWindow;
             gr->GetXaxis()->SetRangeUser(minX, maxX);
+            gr->GetXaxis()->SetTitle("Slope [a.u]");
+            gr->GetYaxis()->SetTitle("Probability [a.u]");
+            gr->SetTitle("Probability distribution of slope");
             gr->Draw("AL");
 
+            double yMin = gr->GetYaxis()->GetXmin();
+            double yMax = gr->GetYaxis()->GetXmax();
+
             double slopeValue = slopes.at(key);
-            TLine *slopeLine = new TLine(slopeValue, gPad->GetUymin(), slopeValue, gPad->GetUymax());
+            TLine *slopeLine = new TLine(slopeValue, yMin, slopeValue, yMax);
             slopeLine->SetLineColor(kGreen);
             slopeLine->SetLineStyle(2);
             slopeLine->Draw("same");
+
             double slopeLowerBound = slopeBounds.at(key).first;
-            TLine *slopeLowerBoundLine = new TLine(slopeLowerBound, gPad->GetUymin(), slopeLowerBound, gPad->GetUymax());
+            TLine *slopeLowerBoundLine = new TLine(slopeLowerBound, yMin, slopeLowerBound, yMax);
             slopeLowerBoundLine->SetLineColor(kBlue);
             slopeLowerBoundLine->SetLineStyle(2);
             slopeLowerBoundLine->Draw("same");
+
             double slopeUpperBound = slopeBounds.at(key).second;
-            TLine *slopeUpperBoundLine = new TLine(slopeUpperBound, gPad->GetUymin(), slopeUpperBound, gPad->GetUymax());
+            TLine *slopeUpperBoundLine = new TLine(slopeUpperBound, yMin, slopeUpperBound, yMax);
             slopeUpperBoundLine->SetLineColor(kBlue);
             slopeUpperBoundLine->SetLineStyle(2);
             slopeUpperBoundLine->Draw("same");
@@ -154,7 +164,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
     auto temp_gErrorIgnoreLevel = gErrorIgnoreLevel;
     gErrorIgnoreLevel = kFatal;
 
-    TCanvas* c1 = new TCanvas("c1", "Plots", 2300, 800);
+    TCanvas* c1 = new TCanvas("c1", "Plots", 2500, 800);
 
     std::string outputFileName = outputDirectory_ + "/distribution_plots.pdf";
     c1->Print((outputFileName + "[").c_str()); // start PDF file
@@ -295,9 +305,12 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     
     // Create 2D histogram before gain match
     c1->cd(1); // Switch to first pad
+    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
     gPad->SetLogz();
     gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
     gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
+    gStyle->SetStatW(0.08);  // set width
+    gStyle->SetStatH(0.08);  // set height
     TH2D *h2_before = new TH2D("h2_before", "Before gain match", nBins, 0, maxRange_, nBins, 0, maxRange_);
     // TH2D *h2_before = new TH2D("h2_before", "Before gain match", 500, 0, 5000, 500, 0, 5000);
 
@@ -320,9 +333,12 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
 
     // Create 2D histogram after gain match
     c1->cd(2); // Switch to second pad
+    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
     gPad->SetLogz();
     gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
     gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
+    gStyle->SetStatW(0.08);  // set width
+    gStyle->SetStatH(0.08);  // set height
     TH2D *h2_after = new TH2D("h2_after", "After gain match", nBins, 0, maxRange_, nBins, 0, maxRange_);
     // TH2D *h2_after = new TH2D("h2_after", "After gain match", 500, 0, 5000, 500, 0, 5000);
 
@@ -361,7 +377,7 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     auto temp_gErrorIgnoreLevel = gErrorIgnoreLevel;
     gErrorIgnoreLevel = kFatal;
 
-    TCanvas* c1 = new TCanvas("c1", "Combined Plots", 1800, 800);
+    TCanvas* c1 = new TCanvas("c1", "Combined Plots", 2300, 800);
 
     std::string outputFileName = outputDirectory_ + "/before_vs_after_histograms.pdf";
     c1->Print((outputFileName + "[").c_str()); // start PDF file
