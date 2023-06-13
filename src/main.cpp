@@ -111,6 +111,7 @@ int main(int argc, char* argv[])
     dataFilterer.FilterData();
 
     auto filteredEnergyData = dataFilterer.GetFilteredEnergyData();
+    auto globalChannelMap = dataFilterer.GetGlobalChannelMap();
 
     // Save data to a file
     // dataFilterer.SaveFilteredEnergyDataToFile(outputDirectory + "/Energies.csv");
@@ -245,7 +246,6 @@ int main(int argc, char* argv[])
         ringCoefficients = minimizer.GetRingCoefficients();
         wedgeCoefficients = minimizer.GetWedgeCoefficients();
 
-        auto globalChannelMap = dataFilterer.GetGlobalChannelMap();
         std::string coefficientsFileName = outputDirectory + "/det" + std::to_string(config.detectorID) + "_internal_gain_factor.txt"; 
         minimizer.SaveCoefficientsToFile(coefficientsFileName, globalChannelMap);
     }
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
     isRunning = true;
     std::thread plotThread(DisplayIndeterminateProgressBar);
 
-    ScatterPlotter plotter(filteredEnergyData, outputDirectory, config.maxSlope, config.minSlope, config.maxOffset, config.minOffset);
+    ScatterPlotter plotter(filteredEnergyData, outputDirectory, config.maxSlope, config.minSlope, config.maxOffset, config.minOffset, globalChannelMap);
     if (calculateOffset)
     {
         plotter.CreateDistributionPlots(slopeDistributions, slopes, slopeBounds, offsetDistributions, offsets, offsetBounds);

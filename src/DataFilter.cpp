@@ -49,7 +49,10 @@ void DataFilter::FilterData()
 
             filteredRingE.resize(currentFilteredCount);
             filteredWedgeE.resize(currentFilteredCount);
-            filteredEnergyData_[key] = std::make_pair(filteredRingE, filteredWedgeE);
+            if (filteredRingE.size() != 0 && filteredRingE.size() == filteredWedgeE.size())
+                filteredEnergyData_[key] = std::make_pair(filteredRingE, filteredWedgeE);
+            else if (filteredRingE.size() != filteredWedgeE.size())
+                std::cout << "RING AND WEDGE ENERGY VECTORS DO NOT HAVE THE SAME NUMBER OF DATA POINTS!!!\n";
         }
     }
 }

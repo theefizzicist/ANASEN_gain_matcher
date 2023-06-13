@@ -13,7 +13,8 @@ public:
                    const double& maxSlope,
                    const double& minSlope,
                    const double& maxOffset,
-                   const double& minOffset);
+                   const double& minOffset,
+                   const std::map<std::pair<int, int>, std::pair<int, int>>& globalChannelMap);
 
     void CreateDistributionPlots(const std::map<std::pair<int, int>, std::vector<double>>& fit_distribution, 
                                  const std::map<std::pair<int, int>, double>& slopes,
@@ -35,6 +36,7 @@ private:
     std::map<std::pair<int, int>, std::pair<std::vector<double>, std::vector<double>>> filteredEnergyData_;
     std::string outputDirectory_;
     double maxSlope_, minSlope_, maxOffset_, minOffset_;
+    std::map<int, int> globalRingChanAt_, globalWedgeChanAt_;
     std::map<std::pair<int, int>, int> maxRangeValues_;
     int maxRange_; // the maximum value out of all maxRangeValues_
 };

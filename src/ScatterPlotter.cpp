@@ -11,14 +11,18 @@
 #include "TStyle.h"
 #include "TColor.h"
 #include <algorithm>
+#include <set>
 
 ScatterPlotter::ScatterPlotter(const std::map<std::pair<int, int>, std::pair<std::vector<double>, std::vector<double>>>& filteredEnergyData,
                                const std::string& output_directory,
                                const double& maxSlope,
                                const double& minSlope,
                                const double& maxOffset,
-                               const double& minOffset)
-    : filteredEnergyData_(filteredEnergyData), outputDirectory_(output_directory), maxSlope_(maxSlope), minSlope_(minSlope), maxOffset_(maxOffset), minOffset_(minOffset) 
+                               const double& minOffset,
+                               const std::map<std::pair<int, int>, std::pair<int, int>>& globalChannelMap)
+    : filteredEnergyData_(filteredEnergyData), outputDirectory_(output_directory), 
+      maxSlope_(maxSlope), minSlope_(minSlope), 
+      maxOffset_(maxOffset), minOffset_(minOffset)
 {
     // fill out maxRangeValues for later use
     maxRange_ = 0.0;
@@ -40,6 +44,33 @@ ScatterPlotter::ScatterPlotter(const std::map<std::pair<int, int>, std::pair<std
                                                       *std::max_element(currentWedgeEnergy.begin(), currentWedgeEnergy.end())));
             maxRangeValues_[key] = static_cast<int>(1.3 * maxEnergy);
             maxRange_ = std::max(maxRange_, maxRangeValues_.at(key));
+        }
+    }
+
+    // fill out maps that convert detector channel to global channel
+    std::set<std::pair<int, int>> seenRingPairs;
+    std::set<std::pair<int, int>> seenWedgePairs;
+    for (const auto& localAndGlobalPair : globalChannelMap)
+    {
+        const auto& detectorChannel = localAndGlobalPair.first;
+        int ringDChannel = detectorChannel.first;
+        int wedgeDChannel = detectorChannel.second;
+
+        const auto& globalChannel = localAndGlobalPair.second;
+        int ringGChannel = globalChannel.first;
+        int wedgeGChannel = globalChannel.second;
+
+        auto currentRingPair = std::make_pair(ringDChannel, ringGChannel);
+        auto currentWedgePair = std::make_pair(wedgeDChannel, wedgeGChannel);
+
+        if (seenRingPairs.insert(currentRingPair).second)
+        {
+            globalRingChanAt_[ringDChannel] = ringGChannel;
+        }
+
+        if (seenWedgePairs.insert(currentWedgePair).second)
+        {
+            globalWedgeChanAt_[wedgeDChannel] = wedgeGChannel;
         }
     }
 }
@@ -294,70 +325,144 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     auto temp_gErrorIgnoreLevel = gErrorIgnoreLevel;
     gErrorIgnoreLevel = kFatal;
 
-    TCanvas* c1 = new TCanvas("c1", "Combined Plots", 2300, 800);
+    TCanvas* c1 = new TCanvas("c1", "Combined Plots", 800, 800);
 
     std::string outputFileName = outputDirectory_ + "/before_vs_after_histograms.pdf";
     c1->Print((outputFileName + "[").c_str()); // start PDF file
     
-    c1->Divide(2,1); // Divide the canvas into two parts
+    c1->Divide(2,3); // Divide the canvas into six parts
 
-    int nBins = static_cast<int>(0.1 * maxRange_);
-    
-    // Create 2D histogram before gain match
-    c1->cd(1); // Switch to first pad
-    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
-    gPad->SetLogz();
-    gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
-    gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
-    gStyle->SetStatW(0.08);  // set width
-    gStyle->SetStatH(0.08);  // set height
-    TH2D *h2_before = new TH2D("h2_before", "Before gain match", nBins, 0, maxRange_, nBins, 0, maxRange_);
-    // TH2D *h2_before = new TH2D("h2_before", "Before gain match", 500, 0, 5000, 500, 0, 5000);
+    /** Define the histograms and fill them **/
 
-    for(int i = 0; i < 16; i++){
-        for(int j = 0; j < 8; j++){
-            std::pair<int, int> key = std::make_pair(i, j);
+    // Wedges vs Rings histograms
+    int WvRBins = static_cast<int>(0.1 * maxRange_); // make the number of bins a tenth of the maximum range
+    TH2D *WvRBefore = new TH2D("WvRBefore", "Wedges vs Rings Before Gain Match", WvRBins, 0, maxRange_, WvRBins, 0, maxRange_);
+    TH2D *WvRAfter = new TH2D("WvRAfter", "Wedges vs Rings After Gain Match", WvRBins, 0, maxRange_, WvRBins, 0, maxRange_);
+    // Ring Energies vs Channels histograms
+    int EvCBins = std::min(static_cast<int>(0.04*maxRange_), 200); // make the number of bins at most 200
+    TH2D *RvCBefore = new TH2D("RvCBefore", "Ring Energies Before Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
+    TH2D *RvCAfter = new TH2D("RvCAfter", "Ring Energies After Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
+    // Wedge Energies vs Channels histograms
+    TH2D *WvCBefore = new TH2D("WvCBefore", "Wedge Energies Before Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
+    TH2D *WvCAfter = new TH2D("WvCAfter", "Wedge Energies After Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
 
-            if(filteredEnergyData_.find(key) == filteredEnergyData_.end()){
-                continue;
+    // Fill them
+    std::set<int> seenRings, seenWedges;
+    for (const auto& chansVsEnergies : filteredEnergyData_)
+    {
+        auto currentRingChannel = chansVsEnergies.first.first;
+        auto currentWedgeChannel = chansVsEnergies.first.second;
+        auto currentRingEnergies = chansVsEnergies.second.first;
+        auto currentWedgeEnergies = chansVsEnergies.second.second;
+
+        bool isRingUnique = seenRings.insert(currentRingChannel).second;
+        bool isWedgeUnique = seenWedges.insert(currentWedgeChannel).second;
+
+        for(int k=0; k<currentRingEnergies.size(); k++)
+        {
+            WvRBefore->Fill(currentRingEnergies[k], currentWedgeEnergies[k]);
+            WvRAfter->Fill(currentRingEnergies[k] * ringCoefficients[currentRingChannel], currentWedgeEnergies[k] * wedgeCoefficients[currentWedgeChannel]);
+        }
+
+        if (isRingUnique)
+        {
+            for (const auto& ringEnergy : currentRingEnergies)
+            {
+                RvCBefore->Fill(globalRingChanAt_[currentRingChannel], ringEnergy);
+                RvCAfter->Fill(globalRingChanAt_[currentRingChannel], ringEnergy * ringCoefficients[currentRingChannel]);
             }
-
-            for(int k=0; k<filteredEnergyData_[key].first.size(); k++){
-                h2_before->Fill(filteredEnergyData_[key].first[k], filteredEnergyData_[key].second[k]);
+        }
+        
+        if (isWedgeUnique)
+        {
+            for (const auto& wedgeEnergy : currentWedgeEnergies)
+            {
+                WvCBefore->Fill(globalWedgeChanAt_[currentWedgeChannel], wedgeEnergy);
+                WvCAfter->Fill(globalWedgeChanAt_[currentWedgeChannel], wedgeEnergy * wedgeCoefficients[currentWedgeChannel]);
             }
         }
     }
-    h2_before->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
-    h2_before->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
-    h2_before->Draw("COLZ");
 
-    // Create 2D histogram after gain match
-    c1->cd(2); // Switch to second pad
+    /** Draw the histograms **/
+
+    // Wedges vs Rings histograms
+    c1->cd(1);
+    gPad->SetMargin(0.1, 0.1, 0.1, 0.1);
+    gPad->SetLogz();
+    WvRBefore->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
+    WvRBefore->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
+    WvRBefore->SetStats(0); // turn off the stat box
+    WvRBefore->Draw("COLZ");
+
+    c1->cd(2);
     gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
     gPad->SetLogz();
-    gStyle->SetStatX(0.5); // change 0.2 to whatever value you need
-    gStyle->SetStatY(0.9); // change 0.9 to whatever value you need
-    gStyle->SetStatW(0.08);  // set width
-    gStyle->SetStatH(0.08);  // set height
-    TH2D *h2_after = new TH2D("h2_after", "After gain match", nBins, 0, maxRange_, nBins, 0, maxRange_);
-    // TH2D *h2_after = new TH2D("h2_after", "After gain match", 500, 0, 5000, 500, 0, 5000);
+    WvRAfter->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
+    WvRAfter->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
+    WvRAfter->SetStats(0);
+    WvRAfter->Draw("COLZ");
 
-    for(int i = 0; i < 16; i++){
-        for(int j = 0; j < 8; j++){
-            std::pair<int, int> key = std::make_pair(i, j);
+    // Ring Energies vs Channels histograms
+    double halfWindow = 0.5 * 0.35 * maxRange_; // make zoomed in window half the size of 35 % of the full range
+    double ringsMaxZ = TMath::Max(RvCBefore->GetMaximum(), RvCAfter->GetMaximum());
+    double wedgesMaxZ = TMath::Max(WvCBefore->GetMaximum(), WvCAfter->GetMaximum());
 
-            if(filteredEnergyData_.find(key) == filteredEnergyData_.end()){
-                continue;
-            }
+    c1->cd(3);
+    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
+    RvCBefore->GetXaxis()->SetTitle("Channel Index [a.u]");
+    RvCBefore->GetYaxis()->SetTitle("Energy [a.u]");
+    RvCBefore->GetXaxis()->SetRangeUser(globalRingChanAt_.begin()->second - 1, globalRingChanAt_.rbegin()->second + 1);
+    int ringsMaxBeforeBin = RvCBefore->GetMaximumBin(), ringsMaxBeforeBinx, ringsMaxBeforeBiny, ringsMaxBeforeBinz;
+    RvCBefore->GetBinXYZ(ringsMaxBeforeBin, ringsMaxBeforeBinx, ringsMaxBeforeBiny, ringsMaxBeforeBinz);
+    double ringsBeforeYMin = RvCBefore->GetYaxis()->GetBinCenter(ringsMaxBeforeBiny) - halfWindow;
+    double ringsBeforeYMax = RvCBefore->GetYaxis()->GetBinCenter(ringsMaxBeforeBiny) + halfWindow;
+    RvCBefore->GetYaxis()->SetRangeUser(std::max(0.0, ringsBeforeYMin), ringsBeforeYMax);
+    RvCBefore->GetZaxis()->SetRangeUser(0, ringsMaxZ);
+    RvCBefore->SetStats(0);
+    RvCBefore->Draw("COLZ");
 
-            for(int k=0; k<filteredEnergyData_[key].first.size(); k++){
-                h2_after->Fill(filteredEnergyData_[key].first[k] * ringCoefficients[i], filteredEnergyData_[key].second[k] * wedgeCoefficients[j]);
-            }
-        }
-    }
-    h2_after->GetXaxis()->SetTitle("An (Ring energies) [a.u]");
-    h2_after->GetYaxis()->SetTitle("Ap (Wedge energies) [a.u]");
-    h2_after->Draw("COLZ");
+    c1->cd(4);
+    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
+    RvCAfter->GetXaxis()->SetTitle("Channel Index [a.u]");
+    RvCAfter->GetYaxis()->SetTitle("Energy [a.u]");
+    RvCAfter->GetXaxis()->SetRangeUser(globalRingChanAt_.begin()->second - 1, globalRingChanAt_.rbegin()->second + 1);
+    int ringsMaxAfterBin = RvCAfter->GetMaximumBin(), ringsMaxAfterBinx, ringsMaxAfterBiny, ringsMaxAfterBinz;
+    RvCAfter->GetBinXYZ(ringsMaxAfterBin, ringsMaxAfterBinx, ringsMaxAfterBiny, ringsMaxAfterBinz);
+    double ringsAfterYMin = RvCAfter->GetYaxis()->GetBinCenter(ringsMaxAfterBiny) - halfWindow;
+    double ringsAfterYMax = RvCAfter->GetYaxis()->GetBinCenter(ringsMaxAfterBiny) + halfWindow;
+    RvCAfter->GetYaxis()->SetRangeUser(std::max(0.0, ringsAfterYMin), ringsAfterYMax);
+    RvCAfter->GetZaxis()->SetRangeUser(0, ringsMaxZ);
+    RvCAfter->SetStats(0);
+    RvCAfter->Draw("COLZ");
+
+    // Wedge Energies vs Channels histograms
+    c1->cd(5);
+    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
+    WvCBefore->GetXaxis()->SetTitle("Channel Index [a.u]");
+    WvCBefore->GetYaxis()->SetTitle("Energy [a.u]");
+    WvCBefore->GetXaxis()->SetRangeUser(globalWedgeChanAt_.begin()->second - 1, globalWedgeChanAt_.rbegin()->second + 1);
+    int wedgesMaxBeforeBin = WvCBefore->GetMaximumBin(), wedgesMaxBeforeBinx, wedgesMaxBeforeBiny, wedgesMaxBeforeBinz;
+    WvCBefore->GetBinXYZ(wedgesMaxBeforeBin, wedgesMaxBeforeBinx, wedgesMaxBeforeBiny, wedgesMaxBeforeBinz);
+    double wedgesBeforeYMin = WvCBefore->GetYaxis()->GetBinCenter(wedgesMaxBeforeBiny) - halfWindow;
+    double wedgesBeforeYMax = WvCBefore->GetYaxis()->GetBinCenter(wedgesMaxBeforeBiny) + halfWindow;
+    WvCBefore->GetYaxis()->SetRangeUser(std::max(0.0, wedgesBeforeYMin), wedgesBeforeYMax);
+    WvCBefore->GetZaxis()->SetRangeUser(0, wedgesMaxZ);
+    WvCBefore->SetStats(0);
+    WvCBefore->Draw("COLZ");
+
+    c1->cd(6);
+    gPad->SetMargin(0.15, 0.15, 0.1, 0.1);
+    WvCAfter->GetXaxis()->SetTitle("Channel Index [a.u]");
+    WvCAfter->GetYaxis()->SetTitle("Energy [a.u]");
+    WvCAfter->GetXaxis()->SetRangeUser(globalWedgeChanAt_.begin()->second - 1, globalWedgeChanAt_.rbegin()->second + 1);
+    int wedgesMaxAfterBin = WvCAfter->GetMaximumBin(), wedgesMaxAfterBinx, wedgesMaxAfterBiny, wedgesMaxAfterBinz;
+    WvCAfter->GetBinXYZ(wedgesMaxAfterBin, wedgesMaxAfterBinx, wedgesMaxAfterBiny, wedgesMaxAfterBinz);
+    double wedgesAfterYMin = WvCAfter->GetYaxis()->GetBinCenter(wedgesMaxAfterBiny) - halfWindow;
+    double wedgesAfterYMax = WvCAfter->GetYaxis()->GetBinCenter(wedgesMaxAfterBiny) + halfWindow;
+    WvCAfter->GetYaxis()->SetRangeUser(std::max(0.0, wedgesAfterYMin), wedgesAfterYMax);
+    WvCAfter->GetZaxis()->SetRangeUser(0, wedgesMaxZ);
+    WvCAfter->SetStats(0);
+    WvCAfter->Draw("COLZ");
 
     gStyle->SetPalette(kInvertedDarkBodyRadiator);
     c1->Update();

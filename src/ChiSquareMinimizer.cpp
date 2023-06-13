@@ -213,7 +213,7 @@ void ChiSquareMinimizer::SaveCoefficientsToFile(const std::string& fileName, con
         int wedgeGChannel = globalChannel.second;
 
         auto currentRingPair = std::make_pair(ringGChannel, ringDChannel);
-        auto currentWedgePair = std::make_pair(wedgeGChannel, wedgeGChannel);
+        auto currentWedgePair = std::make_pair(wedgeGChannel, wedgeDChannel);
 
         if (seenRingPairs.insert(currentRingPair).second)
         {
