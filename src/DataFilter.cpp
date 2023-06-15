@@ -1,6 +1,7 @@
 #include "DataFilter.h"
 #include <fstream>
 #include <string>
+#include <sstream>
 
 DataFilter::DataFilter(const ExtractedData& extractedData, int detectorID, std::string& channelMapFile)
     : extractedData_(extractedData), detectorID_(detectorID)
