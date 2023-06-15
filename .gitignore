@@ -4,3 +4,7 @@ outputs/*
 lib/*
 objs/*
 bin/*
+*.o
+*.so
+*.pcm
+src/*.cxx
