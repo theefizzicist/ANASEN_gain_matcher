@@ -226,3 +226,43 @@ void ChiSquareMinimizer::SaveCoefficientsToFile(const std::string& fileName, con
         }
     }
 }
+
+void ChiSquareMinimizer::SaveCoefficientsWithScalingToFile(const std::string& fileName, const std::map<std::pair<int, int>, 
+                                                           std::pair<int, int>>& globalChannelMap,
+                                                           const double& scalingFactor) const
+{
+    std::ofstream file(fileName);
+
+    if (!file.is_open())
+    {
+        std::cerr << "Unable to open file " << fileName << "\n";
+        return;
+    }
+
+    std::set<std::pair<int, int>> seenRingPairs;
+    std::set<std::pair<int, int>> seenWedgePairs;
+
+    for (const auto& localAndGlobalPair : globalChannelMap)
+    {
+        const auto& detectorChannel = localAndGlobalPair.first;
+        int ringDChannel = detectorChannel.first;
+        int wedgeDChannel = detectorChannel.second;
+
+        const auto& globalChannel = localAndGlobalPair.second;
+        int ringGChannel = globalChannel.first;
+        int wedgeGChannel = globalChannel.second;
+
+        auto currentRingPair = std::make_pair(ringGChannel, ringDChannel);
+        auto currentWedgePair = std::make_pair(wedgeGChannel, wedgeDChannel);
+
+        if (seenRingPairs.insert(currentRingPair).second)
+        {
+            file << "Chans " << ringGChannel << "\t" << scalingFactor * ringCoefficients_[ringDChannel] << std::endl;
+        }
+
+        if (seenWedgePairs.insert(currentWedgePair).second)
+        {
+            file << "Chans " << wedgeGChannel << "\t" << scalingFactor * wedgeCoefficients_[wedgeDChannel] << std::endl;
+        }
+    }
+}

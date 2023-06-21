@@ -5,6 +5,7 @@
 #include "DataFilter.h"
 #include "BayesianSpnCalculatorOMP.h"
 #include "ChiSquareMinimizer.h"
+#include "GlobalFactorCalculator.h"
 #include "ScatterPlotter.h"
 #include <iostream>
 #include <TSystem.h> // needed for gSystem
@@ -88,11 +89,12 @@ int main(int argc, char* argv[])
     // stop the progress bar
     isRunning = false;
     extractionThread.join();
+    std::cout << std::endl;
 
     auto extractionEnd = std::chrono::high_resolution_clock::now();
     auto extractionTime = std::chrono::duration_cast<std::chrono::milliseconds>(extractionEnd - extractionStart).count();
 
-    std::cout << std::endl << "Extraction completed. The process took " << extractionTime/1000.0 << " seconds.\n\n";
+    std::cout << "Extraction completed. The process took " << extractionTime/1000.0 << " seconds.\n\n";
 
     /**************************************/
     /**** Filter the extracted columns ****/
@@ -113,17 +115,18 @@ int main(int argc, char* argv[])
     auto filteredEnergyData = dataFilterer.GetFilteredEnergyData();
     auto globalChannelMap = dataFilterer.GetGlobalChannelMap();
 
-    // Save data to a file
-    // dataFilterer.SaveFilteredEnergyDataToFile(outputDirectory + "/Energies.csv");
-
     // stop the progress bar
     isRunning = false;
     filterThread.join();
+    std::cout << std::endl;
+
+    // Save data to a file
+    dataFilterer.SaveFilteredEnergyDataToFile(outputDirectory + "/Filtered_Energies.csv");
     
     auto filterEnd = std::chrono::high_resolution_clock::now();
     auto filterTime = std::chrono::duration_cast<std::chrono::milliseconds>(filterEnd - filterStart).count();
 
-    std::cout << std::endl << "Filter completed. Process took " << filterTime/1000.0 << " seconds.\n\n";
+    std::cout << "Filter completed. Process took " << filterTime/1000.0 << " seconds.\n\n";
 
     /******************************/
     /**** Calculate the slopes ****/
@@ -209,8 +212,33 @@ int main(int argc, char* argv[])
 
     std::cout << std::endl << "Calculation completed. Process took " << slopeTime/1000.0 << " seconds.\n\n";
 
+    /***************************************/
+    /**** Compute global scaling factor ****/
+    /***************************************/
+
+    std::cout << "Calculating global scaling factor...\n";
+
+    auto scalingStart = std::chrono::high_resolution_clock::now();
+
+    // start the progress bar
+    isRunning = true;
+    std::thread scalingFactorThread(DisplayIndeterminateProgressBar);
+
+    GlobalFactorCalculator factorCalculator(config.am241File, config.detectorID, outputDirectory);
+    factorCalculator.FindGlobalFactor();
+    const double globalScalingFactor = factorCalculator.GetGlobalFactor();
+
+    // stop the progress bar
+    isRunning = false;
+    scalingFactorThread.join();
+    std::cout << std::endl;
+
+    auto scalingEnd = std::chrono::high_resolution_clock::now();
+    auto scalingTime = std::chrono::duration_cast<std::chrono::milliseconds>(scalingEnd - scalingStart).count();
+    std::cout << "Calculation completed. Process took " << scalingTime/1000.0 << " seconds.\n\n";
+
     /***********************************************/
-    /****  Compute the calibration coefficients ****/
+    /**** Compute the calibration coefficients ****/
     /***********************************************/
 
     std::cout << "Calculating calibration coefficients...\n";
@@ -248,6 +276,9 @@ int main(int argc, char* argv[])
 
         std::string coefficientsFileName = outputDirectory + "/det" + std::to_string(config.detectorID) + "_internal_gain_factor.txt"; 
         minimizer.SaveCoefficientsToFile(coefficientsFileName, globalChannelMap);
+
+        std::string gainMapFileName = outputDirectory + "/det" + std::to_string(config.detectorID) + "_global_gain_factor.txt";
+        minimizer.SaveCoefficientsWithScalingToFile(gainMapFileName, globalChannelMap, globalScalingFactor);
     }
 
     auto chi2End = std::chrono::high_resolution_clock::now();
@@ -282,11 +313,12 @@ int main(int argc, char* argv[])
     // stop the progress bar
     isRunning = false;
     plotThread.join();
+    std::cout << std::endl;
 
     auto plotEnd = std::chrono::high_resolution_clock::now();
     auto plotTime = std::chrono::duration_cast<std::chrono::milliseconds>(plotEnd - plotStart).count();
 
-    std::cout << std::endl << "Plots completed. Process took " << plotTime/1000.0 << " seconds.\n\n";
+    std::cout << "Plots completed. Process took " << plotTime/1000.0 << " seconds.\n\n";
 
     /***********************/
     /**** Total runtime ****/

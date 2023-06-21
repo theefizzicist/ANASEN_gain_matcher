@@ -34,6 +34,7 @@ bool ReadConfig(const std::filesystem::path& configFile, Config& config)
     try {
         config.inputDirectory = configMap["input_directory"];
         config.channelMapFile = configMap["channel_map_file"];
+        config.am241File = configMap["Am241_file"];
         config.detectorID = std::stoi(configMap["detector_id"]);
         config.gridPointsForSlope = std::stoi(configMap["grid_points_for_slope"]);
         config.gridPointsForOffset = std::stoi(configMap["grid_points_for_offset"]);

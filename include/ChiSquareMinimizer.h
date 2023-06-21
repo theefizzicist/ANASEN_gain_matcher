@@ -45,6 +45,10 @@ public:
     std::vector<double> GetWedgeOffsets() const;
 
     void SaveCoefficientsToFile(const std::string& fileName, const std::map<std::pair<int, int>, std::pair<int, int>>& globalChannelMap) const;
+
+    void SaveCoefficientsWithScalingToFile(const std::string& fileName, const std::map<std::pair<int, int>, 
+                                           std::pair<int, int>>& globalChannelMap,
+                                           const double& scalingFactor) const;
 };
 
 #endif

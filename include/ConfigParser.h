@@ -8,6 +8,7 @@ struct Config
 {
     std::string inputDirectory;
     std::string channelMapFile;
+    std::string am241File;
     int detectorID;
     int gridPointsForSlope;
     int gridPointsForOffset;

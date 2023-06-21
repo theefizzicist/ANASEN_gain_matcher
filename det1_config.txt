@@ -4,6 +4,9 @@
 [channel_map_file]
 ./inputs/ChannelMap_Sep2021_SABRE.txt
 
+[Am241_file]
+./inputs/am241.root
+
 [detector_id]
 1
 
