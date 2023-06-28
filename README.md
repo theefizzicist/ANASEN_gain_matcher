@@ -66,7 +66,7 @@ This script will open separate terminals and run the calibration for each detect
 
 Please note that this concurrent script may occasionally exhibit bug-like behavior during the plotting process. If such issues arise, consider using the individual calibration method or the sequential calibration script.
 
-## Running the Sequential Calibration Script
+### Running the Sequential Calibration Script
 
 If you prefer running each calibration sequentially to avoid possible issues during the plotting process, you can use the sequential calibration script:
 
