@@ -29,14 +29,18 @@ This command will also create all necessary directories, compile all source file
 
 ## Usage
 
-Once the program is successfully built, run it using the following command:
+Once the program is successfully built, you can calibrate the detectors individually or all at once using one of the provided bash scripts.
+
+### Individual Calibration
+
+You can run the calibration for individual detectors using the following command:
 
 `./bin/gainMatch <run_number> <config_file>`
 
 Where:
 
 + `<run_number>` is an integer representing the run number of the input file you want to use for to do gain match.
-+ `<config_file>` is the name of a configuration file. Example configuration files named `det#_config.txt` (where # can go from 0 to 4) are already provided in the repo.
++ `<config_file>` is the name of a configuration file. Example configuration files named `det#_config.txt` (where `#` can go from 0 to 4) are already provided in the repo.
 
 For example, to run the program with run number 83 and configuration file `det0_config.txt`, use:
 
@@ -44,7 +48,41 @@ For example, to run the program with run number 83 and configuration file `det0_
 
 The program will load the required shared library, process the input arguments and the configuration file, extract and filter necessary data from the specified source, calculate slopes of the filtered data using Bayesian inference, calculate calibration coefficients using chi-square minimization, and generate and save plots of the results in the `outputs` directory.
 
-Please note that the example configuration files assume that the "eventbuild" root files are located inside the `inputs` directory and follow the naming format `run_#.root` where # is an integer. If you create your own configuration files, they should specify details such as the input directory, detector ID, channel map file, and other relevant parameters.
+This is useful if you want to recalibrate a single detector or if you want to manually control the calibration process.
+
+### Running the Concurrent Calibration Script
+
+For convenience, you can calibrate all five detectors concurrently with a single command using a bash script.
+
+To calibrate all detectors concurrently, use the following command:
+
+`./gainMatchAllDetectorsConcurrently.sh <run_number>`
+
+Where:
+
++ `<run_number>` is an integer representing the run number of the input files you want to use for gain matching.
+
+This script will open separate terminals and run the calibration for each detector concurrently. It creates temporary files (`/tmp/det#_done` where `#` goes from 0 to 4) to keep track of the status of each calibration process. Once all calibrations are done, it will automatically run the ROOT macro `combineGainMaps.C` to combine the gain files.
+
+Please note that this concurrent script may occasionally exhibit bug-like behavior during the plotting process. If such issues arise, consider using the individual calibration method or the sequential calibration script.
+
+## Running the Sequential Calibration Script
+
+If you prefer running each calibration sequentially to avoid possible issues during the plotting process, you can use the sequential calibration script:
+
+`./gainMatchAllDetectorsSequentially.sh <run_number>`
+
+Where:
+
++ `<run_number>` is an integer representing the run number of the input files you want to use for gain matching.
+
+This script will run the calibration process for each detector sequentially, one after the other. It prints the status of each calibration process and informs you when each detector is done. Once all detectors have been calibrated, it will automatically run the ROOT macro `combineGainMaps.C` to combine the gain files.
+
+Remember that all these scripts assume that the configuration files named `det#_config.txt` (where `#` can go from 0 to 4) are already provided in the repo and that the "eventbuild" root files are located inside the `inputs` directory and follow the naming format `run_#` where `#` is an integer.
+
+## Configuration Files
+
+Please note that the example configuration files assume that the "eventbuild" root files are located inside the `inputs` directory and follow the naming format `run_#.root` where `#` is an integer. If you create your own configuration files, they should specify details such as the input directory, detector ID, channel map file, and other relevant parameters.
 
 ## Cleaning up
 
