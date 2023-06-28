@@ -47,16 +47,16 @@ void GlobalFactorCalculator::FindGlobalFactor()
 
     ROOT::RDataFrame dataFrame(*dataTree_);
 
-    const UShort_t energyThreshold = 1000;
+    const UShort_t energyThreshold = 1500;
     const UShort_t currentDetectorBoard = detectorID_ + 3;
     const UShort_t backMostRingForBoard3 = 15;
     const UShort_t backMostRingForOthers = 0;
 
     auto filteredDataFrame = dataFrame.Filter([=](UShort_t energy, UShort_t board, UShort_t channel) {
-        return energy > energyThreshold && board == currentDetectorBoard && ((board == 3 && channel == backMostRingForBoard3) || channel == backMostRingForOthers);
+        return energy > energyThreshold && board == currentDetectorBoard && ((board == 3 && channel == backMostRingForBoard3) || (board != 3 && channel == backMostRingForOthers));
     }, {"Energy", "Board", "Channel"});
 
-    auto am241SpectrumHistogram = filteredDataFrame.Histo1D({"am241Spectrum", "Am-241 1D Spectrum", 1024, 0, 8192}, "Energy");
+    auto am241SpectrumHistogram = filteredDataFrame.Histo1D({"am241Spectrum", "Am-241 1D Spectrum", 1024, 0, 16384}, "Energy");
 
     // Write the histogram to a file
     TFile output((outputDirectory_ + "/am241_spectrum.root").c_str(), "RECREATE");
