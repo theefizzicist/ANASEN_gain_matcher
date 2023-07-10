@@ -17,7 +17,7 @@ public:
 
 private:
     bool IsFileExisting(const std::string& filePath);
-    void ExtractData(const ProcessedEvent& event);
+    void ExtractData(const CoincEvent& event);
     template <typename T>
     void CheckForEmptyVector(const std::vector<T>& vec, const std::string& vecName) const;
     

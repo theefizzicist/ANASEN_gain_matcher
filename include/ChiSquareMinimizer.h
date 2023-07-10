@@ -11,8 +11,8 @@ private:
     std::map<std::pair<int, int>, double> offsets_, offsetErrors_;
     std::vector<double> ringCoefficients_, wedgeCoefficients_;
     std::vector<double> ringOffsets_, wedgeOffsets_;
-    double slopeOnlyInitialParametersVector_[23];
-    double slopeAndOffsetInitialParametersVector_[46];
+    double slopeOnlyInitialParametersVector_[31];
+    double slopeAndOffsetInitialParametersVector_[62];
     int detectorID_;
 
 public:

@@ -5,10 +5,10 @@
 #include <cstddef>
 
 struct ExtractedData {
-    std::vector<double> sabreRingChannel;
-    std::vector<double> sabreWedgeChannel;
-    std::vector<double> sabreRingE;
-    std::vector<double> sabreWedgeE;
+    std::vector<double> qqqRingChannel;
+    std::vector<double> qqqWedgeChannel;
+    std::vector<double> qqqRingE;
+    std::vector<double> qqqWedgeE;
     std::vector<size_t> ringMultiplicity;
     std::vector<size_t> wedgeMultiplicity;
 };

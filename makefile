@@ -13,9 +13,9 @@ createdirs := $(shell for dir in $(incdir) $(srcdir) $(objdir) $(libdir) $(bindi
 
 # Define compiler and flags
 CXX := g++
-CXXFLAGS := -std=c++11 -O3 -fPIC -g $(shell root-config --cflags)
-CPPFLAGS := -I./ -I$(incdir) -I$(shell root-config --incdir) 
-LDFLAGS := $(shell root-config --libs) -fopenmp 
+CXXFLAGS := -std=c++11 -O3 -fPIC -g $(shell root-config --cflags) -Xpreprocessor -fopenmp
+CPPFLAGS := -I./ -I$(incdir) -I$(shell root-config --incdir) -I$(shell brew --prefix libomp)/include
+LDFLAGS := $(shell root-config --libs) -L$(shell brew --prefix libomp)/lib -lomp
 
 # Define main application binary and source files
 main_app := $(bindir)/gainMatch
@@ -25,17 +25,17 @@ cpp_objects := $(patsubst $(srcdir)/%.cpp, $(objdir)/%.o, $(cpp_srcfiles))
 objects := $(cpp_objects) 
 
 # Define ROOT dictionary files, library, and object files
-dict := $(srcdir)/sps_dict.cxx
-dict_inputs := $(incdir)/DataStructs.h $(incdir)/GainMap.h $(incdir)/ChannelMap.h $(incdir)/LinkDef_sps.h
-dictlib := $(libdir)/libSPSDict
-dictobj := $(objdir)/sps_dict.o
+dict := $(srcdir)/anasen_dict.cxx
+dict_inputs := $(incdir)/DataStructs.h $(incdir)/GainMap.h $(incdir)/ChannelMap.h $(incdir)/LinkDef_evb.h
+dictlib := $(libdir)/libEVBDict
+dictobj := $(objdir)/anasen_dict.o
 
 # Default target: build the main application
 all: main_app shared_lib
 
 # Build the main application, depending on the object files and shared library
 main_app: $(objects) shared_lib 
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $(main_app) $(objects) -L$(libdir) -lSPSDict $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $(main_app) $(objects) -L$(libdir) -lEVBDict $(LDFLAGS)
 
 # Compile source files into object files
 $(objdir)/%.o: $(srcdir)/%.cpp
@@ -58,9 +58,9 @@ $(dict) : $(dict_inputs)
 
 # Clean up generated files
 clean:
-	rm -f $(dict) \
-		  $(dictobj) \
-		  $(dictlib).so \
+	rm -f $(srcdir)/*.cxx \
+		  $(objdir)/*.o \
+		  $(libdir)/*.so \
 		  $(libdir)/*.pcm \
 		  $(srcdir)/*.pcm \
 		  $(objects) \

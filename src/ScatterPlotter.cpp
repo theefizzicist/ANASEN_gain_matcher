@@ -28,7 +28,7 @@ ScatterPlotter::ScatterPlotter(const std::map<std::pair<int, int>, std::pair<std
     maxRange_ = 0.0;
     for (int i = 0; i < 16; i++)
     {
-        for (int j = 0; j < 8; j++)
+        for (int j = 0; j < 16; j++)
         {
             std::pair<int, int> key = std::make_pair(i, j);
 
@@ -88,7 +88,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
     c1->Print((outputFileName + "[").c_str()); // start PDF file
     
     for(int i = 0; i < 16; i++){
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < 16; j++){
             std::pair<int, int> key = std::make_pair(i, j);
 
             if(filteredEnergyData_.find(key) == filteredEnergyData_.end()){
@@ -173,7 +173,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
             slopeUpperBoundLine->SetLineStyle(2);
             slopeUpperBoundLine->Draw("same");
 
-            gStyle->SetPalette(kInvertedDarkBodyRadiator);
+            gStyle->SetPalette(kSunset); //kInvertedDarkBodyRadiator
             c1->Update();
             c1->Print(outputFileName.c_str()); // add canvas to PDF file
         }
@@ -201,7 +201,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
     c1->Print((outputFileName + "[").c_str()); // start PDF file
     
     for(int i = 0; i < 16; i++){
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < 16; j++){
             std::pair<int, int> key = std::make_pair(i, j);
 
             if(filteredEnergyData_.find(key) == filteredEnergyData_.end()){
@@ -213,7 +213,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
             }
 
             c1->Clear();
-            c1->Divide(3, 1); // split canvas into two parts
+            c1->Divide(3, 1); // split canvas into three parts
 
             // create 2D histogram
             c1->cd(1); // switch to first pad
@@ -273,7 +273,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
             slopeUpperBoundLine->Draw("same");
 
             // create offset plot
-            c1->cd(3); // switch to second pad
+            c1->cd(3); // switch to third pad
 
             std::vector<double> OpnValues(offsetDistribution.at(key).size());
             double dO = (maxOffset_ - minOffset_) / (offsetDistribution.at(key).size() - 1);
@@ -307,7 +307,7 @@ void ScatterPlotter::CreateDistributionPlots(const std::map<std::pair<int, int>,
             offsetUpperBoundLine->SetLineStyle(2);
             offsetUpperBoundLine->Draw("same");
 
-            gStyle->SetPalette(kInvertedDarkBodyRadiator);
+            gStyle->SetPalette(kSunset); //kInvertedDarkBodyRadiator
             c1->Update();
             c1->Print(outputFileName.c_str()); // add canvas to PDF file
         }
@@ -340,11 +340,11 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     TH2D *WvRAfter = new TH2D("WvRAfter", "Wedges vs Rings After Gain Match", WvRBins, 0, maxRange_, WvRBins, 0, maxRange_);
     // Ring Energies vs Channels histograms
     int EvCBins = std::min(static_cast<int>(0.04*maxRange_), 200); // make the number of bins at most 200
-    TH2D *RvCBefore = new TH2D("RvCBefore", "Ring Energies Before Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
-    TH2D *RvCAfter = new TH2D("RvCAfter", "Ring Energies After Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
+    TH2D *RvCBefore = new TH2D("RvCBefore", "Ring Energies Before Gain Match", 256, 0, 256, EvCBins, 0, maxRange_);
+    TH2D *RvCAfter = new TH2D("RvCAfter", "Ring Energies After Gain Match", 256, 0, 256, EvCBins, 0, maxRange_);
     // Wedge Energies vs Channels histograms
-    TH2D *WvCBefore = new TH2D("WvCBefore", "Wedge Energies Before Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
-    TH2D *WvCAfter = new TH2D("WvCAfter", "Wedge Energies After Gain Match", 128, 0, 127, EvCBins, 0, maxRange_);
+    TH2D *WvCBefore = new TH2D("WvCBefore", "Wedge Energies Before Gain Match", 256, 0, 256, EvCBins, 0, maxRange_);
+    TH2D *WvCAfter = new TH2D("WvCAfter", "Wedge Energies After Gain Match", 256, 0, 256, EvCBins, 0, maxRange_);
 
     // Fill them
     std::set<int> seenRings, seenWedges;
@@ -464,7 +464,7 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     WvCAfter->SetStats(0);
     WvCAfter->Draw("COLZ");
 
-    gStyle->SetPalette(kInvertedDarkBodyRadiator);
+    gStyle->SetPalette(kSunset); //kInvertedDarkBodyRadiator
     c1->Update();
     c1->Print(outputFileName.c_str()); // add canvas to PDF file
 
@@ -497,7 +497,7 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     TH2D *h2_before = new TH2D("h2_before", "Before gain match", 500, 0, 5000, 500, 0, 5000);
     
     for(int i = 0; i < 16; i++){
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < 16; j++){
             std::pair<int, int> key = std::make_pair(i, j);
 
             if(filteredEnergyData_.find(key) == filteredEnergyData_.end()){
@@ -520,7 +520,7 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
     TH2D *h2_after = new TH2D("h2_after", "After gain match", 500, 0, 5000, 500, 0, 5000);
 
     for(int i = 0; i < 16; i++){
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < 16; j++){
             std::pair<int, int> key = std::make_pair(i, j);
 
             if(filteredEnergyData_.find(key) == filteredEnergyData_.end()){
@@ -535,7 +535,7 @@ void ScatterPlotter::CreateOverlayPlot(const std::vector<double>& ringCoefficien
 
     h2_after->Draw("COLZ");
 
-    gStyle->SetPalette(kInvertedDarkBodyRadiator);
+    gStyle->SetPalette(kSunset); //kInvertedDarkBodyRadiator
     c1->Update();
     c1->Print(outputFileName.c_str()); // add canvas to PDF file
 

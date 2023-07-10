@@ -13,7 +13,7 @@ runNumber=$1
 # Run all instances sequentially in the current terminal #
 ##########################################################
 
-for i in {0..4}; do
+for i in {0..3}; do
     # Print the start of calibration process for each detector
     echo -e "**************************************************************"
     echo -e "Gain matching detector ${i} ...\n"

@@ -2,10 +2,10 @@
 ./inputs/
 
 [channel_map_file]
-./inputs/ChannelMap_Sep2021_SABRE.txt
+./inputs/ANASEN_TRIUMFAug_run21+_ChannelMap.txt
 
 [Am241_file]
-./inputs/am241.root
+./inputs/alphas_post14N_no116.root
 
 [detector_id]
 1

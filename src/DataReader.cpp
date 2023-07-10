@@ -5,7 +5,7 @@
 
 DataReader::DataReader(const std::string& filePath, int runNumber, int detectorID) {
     // Create the input file path using the config's input directory and run number
-    std::string inputFile = filePath + "/run_" + std::to_string(runNumber) + ".root";
+    std::string inputFile = filePath + "run_" + std::to_string(runNumber) + ".root";
     
     if (!IsFileExisting(inputFile)) {
         throw std::runtime_error("Error: File does not exist: " + inputFile);
@@ -28,8 +28,8 @@ DataReader::~DataReader() {
 }
 
 void DataReader::ReadAndExtractDataWTTree() {
-    TTree *tree = static_cast<TTree*>(file_->Get("SPSTree"));
-    ProcessedEvent *processed_event = nullptr;
+    TTree *tree = static_cast<TTree*>(file_->Get("SortTree"));
+    CoincEvent *processed_event = nullptr;
     tree->SetBranchAddress("event", &processed_event);
 
     for (int i = 0; i < tree->GetEntries(); ++i) {
@@ -39,10 +39,10 @@ void DataReader::ReadAndExtractDataWTTree() {
 }
 
 const ExtractedData& DataReader::GetExtractedData() const {
-    CheckForEmptyVector(extractedData_.sabreRingChannel, "sabreRingChannel");
-    CheckForEmptyVector(extractedData_.sabreWedgeChannel, "sabreWedgeChannel");
-    CheckForEmptyVector(extractedData_.sabreRingE, "sabreRingE");
-    CheckForEmptyVector(extractedData_.sabreWedgeE, "sabreWedgeE");
+    CheckForEmptyVector(extractedData_.qqqRingChannel, "qqqRingChannel");
+    CheckForEmptyVector(extractedData_.qqqWedgeChannel, "qqqWedgeChannel");
+    CheckForEmptyVector(extractedData_.qqqRingE, "qqqRingE");
+    CheckForEmptyVector(extractedData_.qqqWedgeE, "qqqWedgeE");
     CheckForEmptyVector(extractedData_.ringMultiplicity, "ringMultiplicity");
     CheckForEmptyVector(extractedData_.wedgeMultiplicity, "wedgeMultiplicity");
     return extractedData_;
@@ -53,13 +53,23 @@ bool DataReader::IsFileExisting(const std::string& filePath) {
     return fileStream.good();
 }
 
-void DataReader::ExtractData(const ProcessedEvent& event) {
-    extractedData_.sabreRingChannel.push_back(event.sabreRingChannel[detectorID_]);
-    extractedData_.sabreWedgeChannel.push_back(event.sabreWedgeChannel[detectorID_]);
-    extractedData_.sabreRingE.push_back(event.sabreRingE[detectorID_]);
-    extractedData_.sabreWedgeE.push_back(event.sabreWedgeE[detectorID_]);
-    extractedData_.ringMultiplicity.push_back(event.sabreArray[detectorID_].rings.size());
-    extractedData_.wedgeMultiplicity.push_back(event.sabreArray[detectorID_].wedges.size());
+void DataReader::ExtractData(const CoincEvent& event) {
+    //probably need to check size > 0 first
+    if(event.fqqq[detectorID_].rings.size()>0 && event.fqqq[detectorID_].wedges.size()>0)
+    {
+        extractedData_.qqqRingChannel.push_back(event.fqqq[detectorID_].rings[0].globalChannel);
+        extractedData_.qqqWedgeChannel.push_back(event.fqqq[detectorID_].wedges[0].globalChannel);
+        extractedData_.qqqRingE.push_back(event.fqqq[detectorID_].rings[0].energy);
+        extractedData_.qqqWedgeE.push_back(event.fqqq[detectorID_].wedges[0].energy);
+        extractedData_.ringMultiplicity.push_back(event.fqqq[detectorID_].rings.size());
+        extractedData_.wedgeMultiplicity.push_back(event.fqqq[detectorID_].wedges.size());
+    }
+    //if empty, only push_back size
+    else
+    {
+        extractedData_.ringMultiplicity.push_back(event.fqqq[detectorID_].rings.size());
+        extractedData_.wedgeMultiplicity.push_back(event.fqqq[detectorID_].wedges.size());
+    }
 }
 
 template <typename T>

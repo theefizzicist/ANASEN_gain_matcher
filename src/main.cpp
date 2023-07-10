@@ -16,9 +16,9 @@
 int main(int argc, char* argv[])
 {
     // Check if the shared library is loaded
-    if (gSystem->Load("lib/libSPSDict.so") == -1) 
+    if (gSystem->Load("lib/libEVBDict.so") == -1) 
     {
-        std::cerr << "Failed to load libSPSDict.so" << std::endl;
+        std::cerr << "Failed to load libEVBDict.so" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     std::thread extractionThread(DisplayIndeterminateProgressBar);
 
     DataReader* detectorData = nullptr;
-    const ExtractedData* sabreDataColumns = nullptr;
+    const ExtractedData* qqqDataColumns = nullptr;
 
     // Get the columns
     try {
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
         detectorData->ReadAndExtractDataWTTree();
 
         // Get the data from the DataReader using the getter functions
-        sabreDataColumns = &detectorData->GetExtractedData();
+        qqqDataColumns = &detectorData->GetExtractedData();
     } catch (const std::runtime_error& e) {
         std::cerr << "An error occurred while creating the DataReader: " << e.what() << std::endl;
         return EXIT_FAILURE;
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     std::thread filterThread(DisplayIndeterminateProgressBar);
 
     // Create a DataFilter object and call the filter_data function
-    DataFilter dataFilterer(*sabreDataColumns, config.detectorID, config.channelMapFile);
+    DataFilter dataFilterer(*qqqDataColumns, config.detectorID, config.channelMapFile);
     dataFilterer.FilterData();
 
     auto filteredEnergyData = dataFilterer.GetFilteredEnergyData();
@@ -162,16 +162,16 @@ int main(int argc, char* argv[])
 
     double currentIteration = 0;
     for (int ringChannel = 0; ringChannel < 16; ++ringChannel) {
-        for (int wedgeChannel = 0; wedgeChannel < 8; ++wedgeChannel) {
+        for (int wedgeChannel = 0; wedgeChannel < 16; ++wedgeChannel) {
             std::pair<int, int> key = std::make_pair(ringChannel, wedgeChannel);
             const auto& An = filteredEnergyData[key].first; // ring energies
             const auto& Ap = filteredEnergyData[key].second; // wedge energies
 
             // Ignore bad channels
-            // if (ringChannel == 4 || ringChannel == 0) {
-            //     currentIteration++;
-            //     continue;
-            // }
+            if ( (config.detectorID==1 && ringChannel==4) || (config.detectorID==1 && ringChannel==5) || (config.detectorID==1 && ringChannel==8) || (config.detectorID==1 && ringChannel==13) || (config.detectorID==1 && wedgeChannel==11) || (config.detectorID==2 && ringChannel==0) || (config.detectorID==2 && ringChannel==1) || (config.detectorID==2 && ringChannel==2) || (config.detectorID==3 && wedgeChannel==9) || (config.detectorID==2 && wedgeChannel==14) || (config.detectorID==2 && wedgeChannel==4) ) {
+                currentIteration++;
+                continue;
+            }
             
             if (An.size() != 0 && Ap.size() != 0) {
 
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
             }
 
             currentIteration++;
-            DisplayDeterminateProgressBar(static_cast<double>(currentIteration) / (16*8));
+            DisplayDeterminateProgressBar(static_cast<double>(currentIteration) / (16*16));
         }
     }
 

@@ -51,7 +51,7 @@ void combineGainMaps(int runNumber)
     std::map<int, double> globalGainFactors;
     std::map<int, double> internalGainFactors;
 
-    for (int detNumber = 0; detNumber <= 4; detNumber++) {
+    for (int detNumber = 0; detNumber <= 3; detNumber++) {
         TString basePath = TString::Format("./outputs/run_%d/detector_%d/", runNumber, detNumber);
         TString globalGainFile = basePath + TString::Format("det%d_global_gain_factor.txt", detNumber);
         TString internalGainFile = basePath + TString::Format("det%d_internal_gain_factor.txt", detNumber);

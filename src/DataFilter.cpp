@@ -14,12 +14,12 @@ bool DataFilter::PassesAllChecks(const int& index,
                                  const int& globalRingChannel,
                                  const int& globalWedgeChannel)
 {
-    if (extractedData_.sabreRingChannel.at(index) == globalRingChannel &&
-        extractedData_.sabreWedgeChannel.at(index) == globalWedgeChannel &&
-        extractedData_.ringMultiplicity.at(index) == 1 &&
+    if (extractedData_.ringMultiplicity.at(index) == 1 &&
         extractedData_.wedgeMultiplicity.at(index) == 1 &&
-        extractedData_.sabreRingE.at(index) > 0 &&
-        extractedData_.sabreWedgeE.at(index) > 0)
+        extractedData_.qqqRingChannel.at(index) == globalRingChannel &&
+        extractedData_.qqqWedgeChannel.at(index) == globalWedgeChannel &&
+        extractedData_.qqqRingE.at(index) > 0 &&
+        extractedData_.qqqWedgeE.at(index) > 0)
     {
         return true;
     }
@@ -29,9 +29,9 @@ bool DataFilter::PassesAllChecks(const int& index,
 
 void DataFilter::FilterData()
 {
-    int dataSize = extractedData_.sabreRingE.size();
+    int dataSize = extractedData_.qqqRingE.size();
     for (int ringchan = 0; ringchan < 16; ++ringchan) {
-        for (int wedgechan = 0; wedgechan < 8; ++wedgechan) {
+        for (int wedgechan = 0; wedgechan < 16; ++wedgechan) {
             std::pair<int, int> key = std::make_pair(ringchan, wedgechan);
             std::pair<int, int> globalChannel = detectorChannelToGlobalChanelMap_[key];
 
@@ -42,8 +42,8 @@ void DataFilter::FilterData()
             {
                 if (PassesAllChecks(idx, globalChannel.first, globalChannel.second))
                 {
-                    filteredRingE[currentFilteredCount] = extractedData_.sabreRingE[idx];
-                    filteredWedgeE[currentFilteredCount] = extractedData_.sabreWedgeE[idx];
+                    filteredRingE[currentFilteredCount] = extractedData_.qqqRingE[idx];
+                    filteredWedgeE[currentFilteredCount] = extractedData_.qqqWedgeE[idx];
                     currentFilteredCount++;
                 }
             }
@@ -65,9 +65,12 @@ const std::map<std::pair<int, int>, std::pair<std::vector<double>, std::vector<d
 
 void DataFilter::FillRingAndWedgeChannels()
 {
+    DetType typeRing[4] = {FQQQ0Ring,FQQQ1Ring,FQQQ2Ring,FQQQ3Ring};
+    DetType typeWedge[4] = {FQQQ0Wedge,FQQQ1Wedge,FQQQ2Wedge,FQQQ3Wedge};
+
     for (int ringChannel = 0; ringChannel < 16; ++ringChannel)
     {
-        for (int wedgeChannel = 0; wedgeChannel < 8; ++wedgeChannel)
+        for (int wedgeChannel = 0; wedgeChannel < 16; ++wedgeChannel)
         {
             int found2 = 0;
             int currentChannel = 0;
@@ -75,12 +78,12 @@ void DataFilter::FillRingAndWedgeChannels()
             for (auto iter = channelMap_.Begin(); iter != channelMap_.End(); iter++, currentChannel++)
             {
                 auto chanInfo = channelMap_.FindChannel(currentChannel);
-                if (chanInfo->second.detectorType == SABREWEDGE && chanInfo->second.detectorPart == wedgeChannel && chanInfo->second.detectorID == detectorID_)
+                if (chanInfo->second.type == typeWedge[detectorID_] && chanInfo->second.local_channel == wedgeChannel)
                 {
                     detectorChannelToGlobalChanelMap_[ringWedgeKey].second = currentChannel;
                     found2++;
                 }
-                if (chanInfo->second.detectorType == SABRERING && chanInfo->second.detectorPart == ringChannel && chanInfo->second.detectorID == detectorID_)
+                if (chanInfo->second.type == typeRing[detectorID_] && chanInfo->second.local_channel == ringChannel)
                 {
                     detectorChannelToGlobalChanelMap_[ringWedgeKey].first = currentChannel;
                     found2++;
