@@ -56,13 +56,13 @@ void GlobalFactorCalculator::FindGlobalFactor()
     const UShort_t energyThreshold = 500;
     const UShort_t currentDetectorBoard = (detectorID_ > 1) ? 5 : 0;
     const UShort_t backMostRingForDet0 = 10;
-    const UShort_t backMostRingForDet1 = 30;
+    const UShort_t backMostRingForDet1 = 27;
     const UShort_t backMostRingForDet2 = 21;
     const UShort_t backMostRingForDet3 = 9;
     //Note: picking out board & channel numbers for rings with least straggling (alpha data)
     // detID board chan
     // 0     0     10
-    // 1     0     30
+    // 1     0     27
     // 2     5     21
     // 3     5     9
 
